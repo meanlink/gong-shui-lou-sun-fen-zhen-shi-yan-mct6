@@ -1,10 +1,11 @@
-import time, json
+import time, json, uuid
 from sqlalchemy import select, func
 from src.config.database import Session
 from migrations.initial import migrate
 from src.models import User, Dataset, Job, Report, Delivery, Audit
 from src.services.business import metadata, seed_records, analyze
 from src.services.reports import deliver
+from src.services import verification as verify
 from src.utils.security import hash_password
 from src.utils.serialization import checksum
 def seed():
@@ -28,6 +29,15 @@ def seed():
             admin=db.scalar(select(User).where(User.role=='admin'))
             j=Job(name='基线复核 · '+m['name'],dataset_id=d.id,params=params,status='completed',result=result,created_by=admin.id,created_at=time.time()-3600,finished_at=time.time()-3595,approved=True)
             db.add(j);db.flush()
+            # 基线同样走封存→原版复算→比对，通过后才批准与分发，杜绝免验真特例。
+            v=verify.seal_job(db,j)
+            verify.activate(db,v)
+            token=uuid.uuid4().hex
+            assert verify.claim(db,v.id,token)
+            verify.run_verification(db,v.id,token)
+            db.refresh(v)
+            if v.status!='passed':
+                raise RuntimeError('基线验真未通过：'+json.dumps(v.differences,ensure_ascii=False))
             r=Report(name='每日业务复核简报',job_id=j.id,destination='业务复核组 · 本地收件箱',interval_seconds=86400,next_run=time.time()+86400,enabled=True)
             db.add(r);db.flush();deliver(db,r)
             db.add(Audit(actor='seed',action='demo.baseline',detail={'dataset':d.id},at=time.time()))

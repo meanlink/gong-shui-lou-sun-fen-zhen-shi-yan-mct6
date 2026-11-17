@@ -32,3 +32,6 @@ target/
 *.o
 *.obj
 .DS_Store
+
+# 本地功能测试（正式环境存放于仓库外 test-artifacts/，见 .local-test-artifacts/README.md）
+.local-test-artifacts/

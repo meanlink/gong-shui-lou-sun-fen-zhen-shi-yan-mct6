@@ -4,6 +4,7 @@ from redis import Redis
 from src.config.settings import REDIS_URL
 from src.models import Dataset, Job
 from src.services.business import metadata
+from src.services.verification import QUEUE_KEY
 def create(db, data, user):
     if not db.get(Dataset,data.dataset_id): raise HTTPException(404,'数据批次不存在')
     allowed={p['key']:p for p in metadata().get('parameters',[])}
@@ -28,3 +29,8 @@ def enqueue(job_id):
         r=Redis.from_url(REDIS_URL); r.rpush('analysis:queue',job_id); r.close()
     except Exception:
         pass # SQL queued status is the durable fallback
+def enqueue_verification(verification_id):
+    try:
+        r=Redis.from_url(REDIS_URL); r.rpush(QUEUE_KEY,verification_id); r.close()
+    except Exception:
+        pass # SQL running 状态由 worker tick 兜底认领

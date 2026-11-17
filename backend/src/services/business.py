@@ -3,14 +3,19 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+from src.rule_versions import CURRENT_RULE_VERSION
 
 FEATURES = ["night_flow", "pressure_drop", "acoustic_db", "pipe_age"]
 LABELS = ["夜间流量(m³/h)", "压力降(kPa)", "声学读数(dB)", "管龄(年)"]
+# 当前生产算法对应的冻结规则版本；升级时切换 CURRENT_RULE_VERSION，
+# 已完成试验的封存凭据仍保留旧版本号并按旧版本复算。
+RULE_VERSION = CURRENT_RULE_VERSION
 
 
 def metadata():
     return {
         "name": "供水漏损分诊实验", "short": "water-triage",
+        "rule_version": RULE_VERSION,
         "tagline": "把历史巡检证据转成可解释分诊规则，先核验漏检代价。",
         "client": "澄川水务 · 城北巡检班12人 · 280个已复核管段样本",
         "workflow": "值班员把夜间流量、压力和听漏记录抄入表格，根据单一声学阈值安排巡查。",
